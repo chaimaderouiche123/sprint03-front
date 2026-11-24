@@ -16,10 +16,10 @@
           @for (oeuvre of oeuvres; track oeuvre.idOeuvre) {
             <tr>
               <td>{{ oeuvre.idOeuvre }}</td>
-              <td>{{ oeuvre.titreOeuvre }}</td>
+              <td>{{ oeuvre.nomOeuvre || oeuvre.titreOeuvre }}</td>
               <td>{{ oeuvre.prixOeuvre }}</td>
               <td>{{ oeuvre.dateCreation | date:'dd/MM/yyyy' }}</td>
-              <td>{{ oeuvre.genre.nomGenre }}</td>
+              <td>{{ oeuvre.genre?.nomGenre || 'Non défini' }}</td>
               <td>
                 @if (authService.isAdmin()) {
                   <a class="btn btn-danger me-2" (click)="supprimerOeuvre(oeuvre)">Supprimer</a>

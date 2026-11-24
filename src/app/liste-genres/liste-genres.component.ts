@@ -14,7 +14,7 @@ import { AuthService } from '../services/auth.service'; // <-- Importation du se
 })
 export class ListeGenresComponent implements OnInit {
   genres!: Genre[];
-  
+
   updatedGenre: Genre = { idGenre: 0, nomGenre: '' };
   ajout: boolean = true;
 
@@ -26,30 +26,40 @@ export class ListeGenresComponent implements OnInit {
   }
 
   chargerGenres() {
-    this.genres = this.oeuvreService.listeGenres();
+    this.oeuvreService.listeGenres().subscribe(cats => {
+      console.log(cats);
+      this.genres = cats._embedded.genres;
+    });
   }
 
   updateGenre(cat: Genre) {
-    this.updatedGenre = cat;
+    this.updatedGenre = { ...cat };
     this.ajout = false;
   }
 
   genreUpdated(cat: Genre) {
     if (this.ajout) {
-      this.oeuvreService.ajouterGenre(cat);
+      this.oeuvreService.ajouterGenreHTTP(cat).subscribe(() => {
+        this.chargerGenres();
+        this.updatedGenre = { idGenre: 0, nomGenre: '' };
+        this.ajout = true;
+      });
+    } else {
+      this.oeuvreService.modifierGenreHTTP(cat).subscribe(() => {
+        this.chargerGenres();
+        this.updatedGenre = { idGenre: 0, nomGenre: '' };
+        this.ajout = true;
+      });
     }
-    this.chargerGenres();
-    this.updatedGenre = { idGenre: 0, nomGenre: '' };
-    this.ajout = true;
   }
 
   supprimerGenre(cat: Genre) {
     let conf = confirm("Etes-vous sûr de vouloir supprimer ce genre ?");
     if (conf) {
-      const index = this.genres.indexOf(cat, 0);
-      if (index > -1) {
-        this.genres.splice(index, 1);
-      }
+      this.oeuvreService.supprimerGenreHTTP(cat.idGenre).subscribe(() => {
+        console.log("genre supprimé");
+        this.chargerGenres();
+      });
     }
   }
 }

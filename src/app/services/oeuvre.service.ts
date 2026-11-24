@@ -1,73 +1,91 @@
 import { Injectable } from '@angular/core';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Observable, map } from 'rxjs';
 import { Oeuvre } from '../model/oeuvre.model';
 import { Genre } from '../model/genre.model';
+import { GenreWrapper } from '../model/genre-wrapped.model';
+
+const httpOptions = {
+  headers: new HttpHeaders({ 'Content-Type': 'application/json' })
+};
 
 @Injectable({
   providedIn: 'root'
 })
 export class OeuvreService {
-  oeuvres: Oeuvre[];
-  genres: Genre[];
+  apiURLOeuvreBase: string = 'http://localhost:8090/oeuvres/rest';
+  apiURLOeuvre: string = 'http://localhost:8090/oeuvres/rest?projection=fullOeuvre';
+  apiURLGenre: string = 'http://localhost:8090/oeuvres/cat';
 
-  constructor() {
-    this.genres = [
-      { idGenre: 1, nomGenre: "Peinture" },
-      { idGenre: 2, nomGenre: "Sculpture" },
-      { idGenre: 3, nomGenre: "piece de theatre" },
-      { idGenre: 4, nomGenre: "poeme" },
-      { idGenre: 5, nomGenre: "film" }
-    ];
+  constructor(private http: HttpClient) {}
 
-    this.oeuvres = [
-      { idOeuvre: 1, titreOeuvre: "La Joconde", prixOeuvre: 850000000, dateCreation: new Date("01/14/1503"), genre: { idGenre: 1, nomGenre: "Peinture" } },
-      { idOeuvre: 2, titreOeuvre: "La Nuit Étoilée", prixOeuvre: 100000000, dateCreation: new Date("06/01/1889"), genre: { idGenre: 1, nomGenre: "Peinture" } },
-      { idOeuvre: 3, titreOeuvre: "Le Penseur", prixOeuvre: 28000000, dateCreation: new Date("01/01/1904"), genre: { idGenre: 2, nomGenre: "Sculpture" } }
-    ];
+  listeOeuvres(): Observable<Oeuvre[]> {
+    return this.http.get<any>(this.apiURLOeuvre).pipe(
+      map(res => res?._embedded?.oeuvres ?? (Array.isArray(res) ? res : []))
+    );
   }
 
-  listeOeuvres(): Oeuvre[] {
-    return this.oeuvres;
-  }
-
-  ajouterOeuvre(o: Oeuvre) {
-    this.oeuvres.push(o);
-  }
-
-  supprimerOeuvre(prod: Oeuvre) {
-    const index = this.oeuvres.indexOf(prod, 0);
-    if (index > -1) {
-      this.oeuvres.splice(index, 1);
+  ajouterOeuvre(o: any): Observable<Oeuvre> {
+    const titre = o.nomOeuvre ?? o.titreOeuvre;
+    const payload: any = {
+      nomOeuvre: titre,
+      titreOeuvre: titre,
+      prixOeuvre: o.prixOeuvre,
+      dateCreation: o.dateCreation
+    };
+    if (o.genre?.idGenre) {
+      payload.genre = `${this.apiURLGenre}/${o.genre.idGenre}`;
     }
+    return this.http.post<Oeuvre>(this.apiURLOeuvreBase, payload, httpOptions);
   }
 
-  consulterOeuvre(id: number): Oeuvre {
-    return this.oeuvres.find(p => p.idOeuvre == id)!;
+  supprimerOeuvre(id: number): Observable<any> {
+    const url = `${this.apiURLOeuvreBase}/${id}`;
+    return this.http.delete(url, httpOptions);
   }
 
-  updateOeuvre(o: Oeuvre) {
-    const index = this.oeuvres.findIndex(p => p.idOeuvre == o.idOeuvre);
-    if (index > -1) {
-      this.oeuvres[index] = o;
+  consulterOeuvre(id: number): Observable<Oeuvre> {
+    const url = `${this.apiURLOeuvreBase}/${id}`;
+    return this.http.get<Oeuvre>(url);
+  }
+
+  updateOeuvre(o: any): Observable<Oeuvre> {
+    const url = `${this.apiURLOeuvreBase}/${o.idOeuvre}`;
+    const titre = o.nomOeuvre ?? o.titreOeuvre;
+    const payload: any = {
+      nomOeuvre: titre,
+      titreOeuvre: titre,
+      prixOeuvre: o.prixOeuvre,
+      dateCreation: o.dateCreation
+    };
+    if (o.genre?.idGenre) {
+      payload.genre = `${this.apiURLGenre}/${o.genre.idGenre}`;
     }
+    return this.http.patch<Oeuvre>(url, payload, httpOptions);
   }
 
-  listeGenres(): Genre[] {
-    return this.genres;
+  rechercherParGenre(idGenre: number): Observable<Oeuvre[]> {
+    return this.listeOeuvres().pipe(
+      map(list => list.filter((o: any) => (o.genre?.idGenre ?? o.idGenre) == idGenre))
+    );
   }
 
-  consulterGenre(id: number): Genre {
-    return this.genres.find(cat => cat.idGenre == id)!;
+  listeGenres(): Observable<GenreWrapper> {
+    return this.http.get<GenreWrapper>(this.apiURLGenre);
   }
 
-  rechercherParGenre(idGenre: number): Oeuvre[] {
-    return this.oeuvres.filter(o => o.genre && o.genre.idGenre == idGenre);
+  ajouterGenreHTTP(genre: Genre): Observable<Genre> {
+    const payload = { nomGenre: genre.nomGenre };
+    return this.http.post<Genre>(this.apiURLGenre, payload, httpOptions);
   }
 
-  // ==> AJOUT DE CETTE MÉTHODE POUR L'ATELIER (pour faire disparaître le rouge)
-  ajouterGenre(cat: Genre) {
-    const maxId = this.genres.length > 0 ? Math.max(...this.genres.map(g => g.idGenre)) : 0;
-    cat.idGenre = maxId + 1;
-    this.genres.push(cat);
+  modifierGenreHTTP(genre: Genre): Observable<Genre> {
+    const url = `${this.apiURLGenre}/${genre.idGenre}`;
+    return this.http.patch<Genre>(url, { nomGenre: genre.nomGenre }, httpOptions);
   }
-  
+
+  supprimerGenreHTTP(id: number): Observable<any> {
+    const url = `${this.apiURLGenre}/${id}`;
+    return this.http.delete(url, httpOptions);
+  }
 }

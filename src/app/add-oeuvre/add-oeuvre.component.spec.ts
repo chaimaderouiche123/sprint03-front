@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { AddOeuvreComponent } from './add-oeuvre.component';
+import { provideHttpClient } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
+import { AddOeuvreComponent } from './add-oeuvre.component';
 
 describe('AddOeuvreComponent', () => {
   let component: AddOeuvreComponent;
@@ -10,6 +11,7 @@ describe('AddOeuvreComponent', () => {
     await TestBed.configureTestingModule({
       imports: [AddOeuvreComponent],
       providers: [
+        provideHttpClient(),
         provideRouter([])
       ]
     })

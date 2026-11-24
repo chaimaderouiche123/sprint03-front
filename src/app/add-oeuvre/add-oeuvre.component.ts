@@ -2,7 +2,6 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Oeuvre } from '../model/oeuvre.model';
 import { Genre } from '../model/genre.model';
 import { OeuvreService } from '../services/oeuvre.service';
 
@@ -11,14 +10,17 @@ import { OeuvreService } from '../services/oeuvre.service';
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './add-oeuvre.component.html',
-  styleUrl: './add-oeuvre.component.css'
+  styles: ``
 })
 export class AddOeuvreComponent implements OnInit {
-
-  newOeuvre = new Oeuvre();
-  genres!: Genre[];
+  genres: Genre[] = [];
   newIdGenre!: number;
-  newGenre!: Genre;
+  newOeuvre: any = {
+    titreOeuvre: '',
+    prixOeuvre: 0,
+    dateCreation: new Date().toISOString().split('T')[0],
+    genre: null
+  };
 
   constructor(
     private oeuvreService: OeuvreService,
@@ -26,13 +28,24 @@ export class AddOeuvreComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.genres = this.oeuvreService.listeGenres();
+    this.oeuvreService.listeGenres().subscribe({
+      next: (cats) => {
+        this.genres = cats._embedded.genres;
+        if (this.genres.length > 0) {
+          this.newIdGenre = this.genres[0].idGenre;
+        }
+      },
+      error: (err) => console.error('Erreur chargement genres :', err)
+    });
   }
 
   addOeuvre(): void {
-    this.newGenre = this.oeuvreService.consulterGenre(this.newIdGenre);
-    this.newOeuvre.genre = this.newGenre;
-    this.oeuvreService.ajouterOeuvre(this.newOeuvre);
-    this.router.navigate(['oeuvres']);
+    this.newOeuvre.genre = { idGenre: this.newIdGenre, nomGenre: '' };
+    this.oeuvreService.ajouterOeuvre(this.newOeuvre).subscribe({
+      next: () => {
+        this.router.navigate(['oeuvres']);
+      },
+      error: (err) => console.error('Erreur ajout œuvre :', err)
+    });
   }
 }

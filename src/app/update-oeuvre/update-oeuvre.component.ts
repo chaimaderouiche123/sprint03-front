@@ -2,22 +2,26 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Oeuvre } from '../model/oeuvre.model';
 import { Genre } from '../model/genre.model';
 import { OeuvreService } from '../services/oeuvre.service';
 
 @Component({
   selector: 'app-update-oeuvre',
   standalone: true,
-  imports: [FormsModule, CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './update-oeuvre.component.html',
   styles: ``
 })
 export class UpdateOeuvreComponent implements OnInit {
-
-  currentOeuvre = new Oeuvre();
-  genres!: Genre[];
-  updatedIdGenre!: number;
+  currentOeuvre: any = {
+    idOeuvre: 0,
+    titreOeuvre: '',
+    prixOeuvre: 0,
+    dateCreation: new Date(),
+    genre: null
+  };
+  genres: Genre[] = [];
+  updatedIdGenre?: number;
 
   constructor(
     private activatedRoute: ActivatedRoute,
@@ -26,18 +30,33 @@ export class UpdateOeuvreComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.genres = this.oeuvreService.listeGenres();
-    this.currentOeuvre = this.oeuvreService.consulterOeuvre(
-      this.activatedRoute.snapshot.params['id']
-    );
-    if (this.currentOeuvre.genre) {
-      this.updatedIdGenre = this.currentOeuvre.genre.idGenre;
-    }
+    const id = Number(this.activatedRoute.snapshot.params['id']);
+
+    this.oeuvreService.listeGenres().subscribe({
+      next: (cats) => {
+        this.genres = cats._embedded.genres;
+      },
+      error: (err) => console.error('Erreur chargement genres :', err)
+    });
+
+    this.oeuvreService.consulterOeuvre(id).subscribe({
+      next: (o) => {
+        this.currentOeuvre = o;
+        this.updatedIdGenre = o.genre?.idGenre;
+      },
+      error: (err) => console.error('Erreur consultation œuvre :', err)
+    });
   }
 
-  updateOeuvre() {
-    this.currentOeuvre.genre = this.oeuvreService.consulterGenre(this.updatedIdGenre);
-    this.oeuvreService.updateOeuvre(this.currentOeuvre);
-    this.router.navigate(['oeuvres']);
+  updateOeuvre(): void {
+    if (this.updatedIdGenre) {
+      this.currentOeuvre.genre = { idGenre: this.updatedIdGenre, nomGenre: '' };
+    }
+    this.oeuvreService.updateOeuvre(this.currentOeuvre).subscribe({
+      next: () => {
+        this.router.navigate(['oeuvres']);
+      },
+      error: (err) => console.error('Erreur modification œuvre :', err)
+    });
   }
 }

@@ -20,13 +20,27 @@ export class OeuvresComponent implements OnInit {
   constructor(private oeuvreService: OeuvreService, public authService: AuthService) {}
 
   ngOnInit(): void {
-    this.oeuvres = this.oeuvreService.listeOeuvres();
+    this.chargerOeuvres();
   }
 
-  supprimerOeuvre(p: Oeuvre) {
-    let conf = confirm("Etes-vous sûr ?");
-    if (conf) {
-      this.oeuvreService.supprimerOeuvre(p);
+  chargerOeuvres(): void {
+    this.oeuvreService.listeOeuvres().subscribe({
+      next: (data) => {
+        this.oeuvres = data;
+      },
+      error: (err) => console.error('Erreur chargement œuvres :', err)
+    });
+  }
+
+  supprimerOeuvre(p: Oeuvre): void {
+    const conf = confirm("Etes-vous sûr ?");
+    if (conf && p.idOeuvre != null) {
+      this.oeuvreService.supprimerOeuvre(p.idOeuvre).subscribe({
+        next: () => {
+          this.chargerOeuvres();
+        },
+        error: (err) => console.error('Erreur suppression œuvre :', err)
+      });
     }
   }
 }

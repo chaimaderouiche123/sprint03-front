@@ -13,21 +13,27 @@ import { SearchFilterPipe } from '../search-filter.pipe';
 })
 export class RechercheParNomComponent implements OnInit {
 
-  oeuvres!: Oeuvre[];
-  allOeuvres!: Oeuvre[];
+  oeuvres: Oeuvre[] = [];
+  allOeuvres: Oeuvre[] = [];
   searchTerm: string = '';
 
   constructor(private oeuvreService: OeuvreService) {}
 
   ngOnInit(): void {
-    this.allOeuvres = this.oeuvreService.listeOeuvres();
-    this.oeuvres = this.allOeuvres;
+    this.oeuvreService.listeOeuvres().subscribe({
+      next: (data) => {
+        this.allOeuvres = data;
+        this.oeuvres = data;
+      },
+      error: (err) => console.error('Erreur chargement œuvres :', err)
+    });
   }
 
-
   onKeyUp(filterText: string): void {
-    this.oeuvres = this.allOeuvres.filter(item =>
-      item.titreOeuvre?.toLowerCase().includes(filterText.toLowerCase())
-    );
+    const query = (filterText ?? '').toLowerCase();
+    this.oeuvres = this.allOeuvres.filter(item => {
+      const titre = item.nomOeuvre ?? item.titreOeuvre ?? '';
+      return titre.toLowerCase().includes(query);
+    });
   }
 }
